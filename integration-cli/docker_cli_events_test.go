@@ -2,6 +2,7 @@ package main
 
 import (
 	"os/exec"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -26,4 +27,20 @@ func TestCLIGetEvents(t *testing.T) {
 		}
 	}
 	logDone("events - untags are logged")
+}
+
+func TestCLILimitEvents(t *testing.T) {
+	out, _, _ := cmd(t, "images", "-q")
+	image := strings.Split(out, "\n")[0]
+	for i := 0; i <= 80; i++ {
+		cmd(t, "tag", image, "limit:"+strconv.Itoa(i))
+	}
+	eventsCmd := exec.Command("timeout", "0.2", dockerBinary, "events", "--since=1")
+	out, _, _ = runCommandWithOutput(eventsCmd)
+	events := strings.Split(out, "\n")
+	n_events := len(events) - 1
+	if n_events > 64 {
+		t.Fatalf("events should be limited to 64, but received %d", n_events)
+	}
+	logDone("events - limited to 64 entries")
 }
